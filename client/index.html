@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>To do List</title>
+    <link rel="stylesheet" href="main.css">
+  </head>
+  <body>
+    <header>
+      <div class="wrapper">
+        <h1>Follow the Money</h1>
+        <p><em>Individual Donations to 2016 Presidential Candidates by State</em></p>
+      </div>
+    </header>
+    <main id="app">
+
+      <div class="dropdown">
+        <button onclick="myFunction()" class="dropbtn"> Dropdown </button>
+        <div id="myDropdown" class="dropdown-content">
+          <a href="#">Hillary Clinton</a>
+          <a href="#">Donald Trump</a>
+          <a href="#">Berny Sanders</a>
+          <a href="#">Ted Cruz</a>
+        </div>
+      </div>
+
+    <script src="app/index.js"></script> 
+
+    </main>
+    <footer>
+      <div class="wrapper">
+        <p>Created by <em>Ch000ng</em></p>
+        <p>Copyright 2017</p>
+      </div>
+    </footer>
+
+  <script id="template-visualization" type="text/x-handlebars-template">
+        <div >
+          <h2>Map</h2>
+          <ul class="js-list">
+            {{#each candidate}}
+              <div data-id="{{ this._id }}">
+                <p> {{candidate}} </p>
+              </div>
+            {{/each}}
+          </ul>
+        </div>
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.6/handlebars.js"></script>
+  <script src="app/index.js"></script>  
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+
+
+  </body>
+</html>
+
+
