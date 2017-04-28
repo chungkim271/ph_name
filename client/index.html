@@ -34,14 +34,30 @@
       </div>
     </footer>
 
-  <script id="template-visualization" type="text/x-handlebars-template">
+  <script id="template-candidateList" type="text/x-handlebars-template">
         <div >
-          <h2>Map</h2>
+          <h2>Candidates</h2>
           <ul class="js-list">
             {{#each candidate}}
-              <div data-id="{{ this._id }}">
-                <p> {{candidate}} </p>
-              </div>
+            <div class="js-candidate">
+                <p> {{this.name}} </p>
+            </div>  
+            {{/each}}
+          </ul>
+        </div>
+  </script>
+
+    <script id="template-mapViz" type="text/x-handlebars-template">
+        <div>
+          <h2>Candidates</h2>
+          <ul class="js-list">
+            {{#each candidate}}
+              <li>
+                {{ this.name}} {{ this.candidate_id}}
+              </li>
+              <map-container>
+              where d3 goes
+              </map-container>
             {{/each}}
           </ul>
         </div>
