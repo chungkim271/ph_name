@@ -47,7 +47,7 @@
         </div>
   </script>
 
-    <script id="template-mapViz" type="text/x-handlebars-template">
+  <script id="template-mapViz" type="text/x-handlebars-template">
         <div>
           <h2>Candidates</h2>
           <ul class="js-list">
@@ -58,14 +58,65 @@
               <map-container>
               where d3 goes
               </map-container>
-            {{/each}}
+              {{#each this.otherCandidates}}
+                  <div class="js-candidate">
+                      <p> {{this}} </p>
+                  </div>
+              {{/each}}
+            {{/each}} 
           </ul>
         </div>
   </script>
 
+  <script id="template-comments" type="text/x-handlebars-template">
+    <div class="c-content">
+      <div class="c-comments">
+        <div class="c-comment-form">
+          <h3>New Comment:</h3>
+          <form class="c-form" action="/post/{{post.id}}" method="post">
+            <div class="c-form__item">
+              <h4 class="c-form__title">Author: </h4>
+              <input type="text" name="author" value="">
+            </div>
+            <div class="c-form__item">
+              <h4 class="c-form__title">Comment: </h4>
+              <textarea name="comment" rows="8" cols="40"></textarea>
+            </div>
+            <div class="c-form__item">
+              <button type="submit" name="submit">Submit</button>
+            </div>
+          </form>
+        </div>
+        <h3>Your Thoughts:</h3>
+        {{#each comments}}
+          <div class="c-comment">
+            <p>
+              {{this.comment}}
+            </p>
+            <span>
+              by {{this.author}}
+            </span>
+          </div>
+        {{/each}}
+      </div>
+    </div>
+  </script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.6/handlebars.js"></script>
-  <script src="app/index.js"></script>  
   <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="https://d3js.org/d3-array.v1.min.js"></script>
+  <script src="https://d3js.org/d3-collection.v1.min.js"></script>
+  <script src="https://d3js.org/d3-color.v1.min.js"></script>
+  <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+  <script src="https://d3js.org/d3-format.v1.min.js"></script>
+  <script src="https://d3js.org/d3-scale.v1.min.js"></script>
+  <script>
+
+  var x = d3.scaleLinear();
+
+  </script>
+  <script src="app/index.js"></script>  
 
 
   </body>

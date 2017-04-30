@@ -1,5 +1,33 @@
 var app = document.getElementById('app') // this is all the space in <main>
 
+// relly helpful stackoverflow post about promises
+// http://stackoverflow.com/questions/30008114/how-do-i-promisify-native-xhr
+function makeRequest (method, url) {
+  return new Promise(function (resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open(method, url);
+    xhr.onload = function () {
+      if (this.status >= 200 && this.status < 300) {
+        resolve(xhr.response);
+      } else {
+        reject({
+          status: this.status,
+          statusText: xhr.statusText
+        });
+      }
+    };
+    xhr.onerror = function () {
+      reject({
+        status: this.status,
+        statusText: xhr.statusText
+      });
+    };
+    xhr.send();
+  });
+}
+
+
+
 /* 
 
   Views 
@@ -38,45 +66,95 @@ var Views = {
                         return obj.name === name
                     })[0]
 
+                    // add to the candidate object a list of other candidates
+                    var others = candidateData.candidate.filter(function ( obj ) {
+                        return obj.name !== name
+                    })
+                    console.log(others)
+                    obj.otherCandidates = []
+                    for (i=0; i < others.length; i++) {
+                        obj.otherCandidates.push(others[i].name)
+                    }
+
                     // obj passed into render() follows handlebar's format
-                    app.innerHTML = Views.mapViz.render( { "candidate":[obj] } )
+                    app.innerHTML = Views.mapViz.render( { "candidate":[obj] } ) //+ 
+                        //Views.comments.render(obj.candidate_id)
                     Views.mapViz.setup(obj)
+                    Views.comments.setup(obj)
+
 
                 })
             }
         }
     
     },
-    mapViz: {
+
+    comments: {
+        setup: function(obj) {
+            console.log(obj.candidate_id)
+            makeRequest('GET', 'http://localhost:2000/schedules/schedule_a/by_state/by_candidate')
+            .then( function(res) {
+
+                console.log('res type:' + typeof res)
+                console.log(res)
+
+                comments = JSON.parse( res )
+
+                app.innerHTML = app.innerHTML + Views.comments.render( {"comments":comments} )
+            
+            })
+        }
+    },
+
+    mapViz: { 
 
         setup: function(obj) {
             console.log("set up for map view!")
             console.log(obj)
 
-            /*
+            Views.candidateList.setup()
 
-              Request US map data from the server
+            // the following function is more suited for 
+            // when API calls must be chained-- i.e. a call is dependent upon
+            // the success of the proceeding one.
+            // in my case, I just need to make sure both mapData and campiData are
+            // defined when I create the map. 
 
-              note: each request needs to have a unique name
+            // define mapData here first.
+            // first promise will assign the json object 
+            // the second promise will look for it in that functon's environment
+            // not find it, and find it setup()'s environment
+            var mapData 
+            makeRequest('GET', 'http://localhost:2000/us_map')
+                .then( function(res) {
+                    mapData = JSON.parse( res )
 
-            */
+                    // make the api call for the chosen candidate
+                    candidateId = obj.candidate_id
+                    apiKey = '8mrww6WdlDoAwNbewqjRQBKIAfVxXsib2uK64OUf'
+                    endPoint = 'https://api.open.fec.gov/v1/schedules/schedule_a/by_state/by_candidate/?per_page=100&page=1&api_key=' + 
+                        apiKey +
+                        '&candidate_id=' + 
+                        candidateId + 
+                        '&cycle=2016&election_full=true'
 
-            var requestStateData = new XMLHttpRequest()
-            requestStateData.open('GET', 'http://localhost:2000/us_map')
-            requestStateData.onreadystatechange = function() {
-                if ( requestStateData.readyState === 4 && requestStateData.status === 200 ) {
-                    var mapData = JSON.parse( requestStateData.response )
-                    Views.mapViz.generateMap(mapData)
-                }
-            }
-            requestStateData.send()
+                    return(makeRequest('GET', endPoint))
+                })
+                .then( function(res) {
+                    var cfData = JSON.parse(res).results // this is an array
+                    Views.mapViz.generateMap(mapData, cfData, obj)
+                })
+                .catch(function(err) {
+                    console.error('Augh, there was an error!', err.statusText)
+                })
 
         },
 
-        generateMap: function(data) {
+        generateMap: function(mapData, cfData, obj) {
                   
-            console.log(data)
-            console.log("success!")
+            // console.log(mapData)
+            // console.log(cfData)
+            // console.log("success!")
 
             //Width and height of map
             var width = 960;
@@ -100,9 +178,9 @@ var Views = {
 
             //Create SVG element and append map to the SVG
             var svg = d3.select("map-container")
-                  .append("svg")
-                  .attr("width", width)
-                  .attr("height", height);
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
             
             // Append Div for tooltip to SVG
             var div = d3.select("body")
@@ -111,129 +189,115 @@ var Views = {
                     .style("opacity", 0);
 
 
+            // create categorical variable based on donation amounts
+            // and assign to a key in cfData
+            // http://learnjsdata.com/ has super helpful tutorials
 
-            // // Load in my states data!
-            // d3.csv("stateslived.csv", function(data) {
-            // color.domain([0,1,2,3]); // setting the range of the input data
+            // I need to delete territories other than the 50 states
+            // Seems like if the state object doesn't have 'state_full', then it's not a U.S. state
+            console.log(cfData)
+            console.log(mapData)
 
-            // do not need this part
-            // Load GeoJSON data and merge with states data
-            // d3.json("us-states.json", function(json) {
+            // define contain method that checks if the element is in an array
+            Array.prototype.contains = function(element) {
+                return this.indexOf(element) > -1;
+            }
 
-            // Loop through each state data value in the .csv file
-            // for (var i = 0; i < data.length; i++) {
+            nonUsStates = [null, "American Samoa", "Guam", "Northern Mariana Islands", "Puerto Rico", "Virgin Islands"]
 
-              // // Grab State Name
-              // var dataState = data[i].state;
+            for (i=0; i < cfData.length; i++) {
+                //console.log(cfData[i])
+                if (nonUsStates.contains(cfData[i].state_full)) {
+                    cfData.splice(i, 1)
+                }
+            }
 
-              // // Grab data value 
-              // var dataValue = data[i].visited;
+            // the following objects have stete_full = null, but won't get filtered!
+            // why?
+            // splice them out manually
+            // cfData.splice(0, 1)
+            // cfData.splice(5, 1)
+            // cfData.splice(41, 1)
 
-              // Find the corresponding state inside the GeoJSON
-              // for (var j = 0; j < json.features.length; j++)  {
-              //   var jsonState = json.features[j].properties.name;
+            var totals = cfData.map(function(d) { return d.total })
+            var min = d3.min(cfData, function(d) { return d.total })
+            var max = d3.max(cfData, function(d) { return d.total })
 
-              //   if (dataState == jsonState) {
+            // console.log(min)
+            // console.log(max)
 
-              //   // Copy the data value into the JSON
-              //   json.features[j].properties.visited = dataValue; 
+            if (obj.party==="D") {
+                var colorScheme = d3.schemeBlues[9]
+            } else if (obj.party==="R") {
+                var colorScheme = d3.schemeReds[9]
+            }
 
-              //   // Stop looking through the JSON
-              //   break;
-                // }
-            //   }
-            // }
+            var color = d3.scaleQuantile()
+                .domain([min, max])
+                .range(colorScheme);
+
+            // add total to mapData
+            for (var i = 0; i < cfData.length; i++) {
+
+            // Grab State Name
+                var cfDataState = cfData[i].state_full;
+
+                // Grab data value 
+                var cfDataValue = cfData[i].total;
+
+              //Find the corresponding state inside the GeoJSON
+                for (var j = 0; j < mapData.features.length; j++)  {
+                    var mapDataState = mapData.features[j].properties.name;
+
+                    if (cfDataState == mapDataState) {
+
+                        // Copy the data value into the JSON
+                        mapData.features[j].properties.total = cfDataValue; 
+
+                        // Stop looking through the JSON
+                        break;
+                    }
+                }
+            }
                 
             // Bind the data to the SVG and create one path per GeoJSON feature
             svg.selectAll("path")
-              .data(data.features)
-              .enter()
-              .append("path")
-              .attr("d", path)
-              .style("stroke", "#fff")
-              .style("stroke-width", "1")
-            //   .style("fill", function(d) {
+                .data(mapData.features)
+                .enter()
+                .append("path")
+                .attr("d", path)
+                .style("stroke", "#fff")
+                .style("stroke-width", "1")
+                .style("fill", function(d) {
 
-            //   // Get data value
-            //   //var value = d.properties.visited;
+                    // Get data value
+                    var value = d.properties.total;
 
-            //   if (value) {
-            //   //If value exists…
-            //   return color(value);
-            //   } else {
-            //   //If value is undefined…
-            //   return "rgb(213,222,217)";
-            //   }
-            // });
-
-                 
-            // Map the cities I have lived in!
-            // d3.csv("cities-lived.csv", function(data) {
-
-            // svg.selectAll("circle")
-            //   .data(data)
-            //   .enter()
-            //   .append("circle")
-            //   .attr("cx", function(d) {
-            //     return projection([d.lon, d.lat])[0];
-            //   })
-            //   .attr("cy", function(d) {
-            //     return projection([d.lon, d.lat])[1];
-            //   })
-            //   .attr("r", function(d) {
-            //     return Math.sqrt(d.years) * 4;
-            //   })
-            //     .style("fill", "rgb(217,91,67)")  
-            //     .style("opacity", 0.85) 
-
-            //   // Modification of custom tooltip code provided by Malcolm Maclean, "D3 Tips and Tricks" 
-            //   // http://www.d3noob.org/2013/01/adding-tooltips-to-d3js-graph.html
-            //   .on("mouseover", function(d) {      
-            //       div.transition()        
-            //            .duration(200)      
-            //            .style("opacity", .9);      
-            //            div.text(d.place)
-            //            .style("left", (d3.event.pageX) + "px")     
-            //            .style("top", (d3.event.pageY - 28) + "px");    
-            //   })   
-
-            //     // fade out tooltip on mouse out               
-            //     .on("mouseout", function(d) {       
-            //         div.transition()        
-            //            .duration(500)      
-            //            .style("opacity", 0);   
-            //     });
-            // });  
-                    
-            // Modified Legend Code from Mike Bostock: http://bl.ocks.org/mbostock/3888852
-            // var legend = d3.select("body").append("svg")
-            //             .attr("class", "legend")
-            //           .attr("width", 140)
-            //           .attr("height", 200)
-            //           .selectAll("g")
-            //           .data(color.domain().slice().reverse())
-            //           .enter()
-            //           .append("g")
-            //           .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
-
-            //     legend.append("rect")
-            //         .attr("width", 18)
-            //         .attr("height", 18)
-            //         .style("fill", color);
-
-            //     legend.append("text")
-            //         .data(legendText)
-            //           .attr("x", 24)
-            //           .attr("y", 9)
-            //           .attr("dy", ".35em")
-            //           .text(function(d) { return d; });
-            //   });
-
-            // });
+                    if (value) {
+                        //If value exists…
+                         return color(value);
+                    } else {
+                      //If value is undefined…
+                        return "rgb(213,222,217)";
+                    }
+                })
+                .on("mouseover", function(d) {      
+                    div.transition()        
+                        .duration(200)      
+                        .style("opacity", .9);      
+                    div.text('$ ' + d.properties.total)
+                        .style("left", (d3.event.pageX) + "px")     
+                        .style("top", (d3.event.pageY - 28) + "px");    
+                })   
+                // fade out tooltip on mouse out               
+                .on("mouseout", function(d) {       
+                    div.transition()        
+                       .duration(500)      
+                       .style("opacity", 0);   
+                })
 
         }
     } 
-
 }
 
 
@@ -248,29 +312,29 @@ var Views = {
 
 
 
-apiKey = '8mrww6WdlDoAwNbewqjRQBKIAfVxXsib2uK64OUf'
-endPoint = 'https://api.open.fec.gov/v1/schedules/schedule_a/by_state/by_candidate/?per_page=100&page=1&api_key=' + 
-  apiKey +
-  '&candidate_id=P00003392&cycle=2016&election_full=true'
+// apiKey = '8mrww6WdlDoAwNbewqjRQBKIAfVxXsib2uK64OUf'
+// endPoint = 'https://api.open.fec.gov/v1/schedules/schedule_a/by_state/by_candidate/?per_page=100&page=1&api_key=' + 
+//   apiKey +
+//   '&candidate_id=P00003392&cycle=2016&election_full=true'
 
-var request = new XMLHttpRequest()
-request.open('GET', endPoint)
-request.onreadystatechange = function() {
-    if ( request.readyState === 4 && request.status === 200 ) {
-      var response = JSON.parse( request.response )
+// var request = new XMLHttpRequest()
+// request.open('GET', endPoint)
+// request.onreadystatechange = function() {
+//     if ( request.readyState === 4 && request.status === 200 ) {
+//       var response = JSON.parse( request.response )
       
-      var states = response.results
+//       var states = response.results
 
-      var stateNames = []
-      for (i=0; i < states.length; i ++) {
-        stateNames.push(states[i].state)
-      }
-    }
+//       var stateNames = []
+//       for (i=0; i < states.length; i ++) {
+//         stateNames.push(states[i].state)
+//       }
+//     }
 
-    console.log(stateNames)
+//     console.log(stateNames)
 
-}
-request.send()
+// }
+// request.send()
 
 
 
@@ -278,33 +342,27 @@ candidateData = {
     "candidate" : [
         {
             "name" : "Hillary Clinton",
-            "candidate_id" : "P00003392"
+            "candidate_id" : "P00003392",
+            "party" : "D"
         },
         {
             "name" : "Donald Trump",
-            "candidate_id" : "P80001571"
+            "candidate_id" : "P80001571",
+            "party" : "R"
         },
         {
-            "name" : "Berny Sanders",
-            "candidate_id" : "P60007168"
+            "name" : "Bernie Sanders",
+            "candidate_id" : "P60007168",
+            "party" : "D"
         },
         {
             "name" : "Ted Cruz",
-            "candidate_id" : "P60006111"
+            "candidate_id" : "P60006111",
+            "party" : "R"
         }
 
     ]
 }
-
-// hella useful
-
-// var name = 'Hillary Clinton'
-
-// var obj = candidateData.filter(function ( obj ) {
-//     return obj.name === name;
-// })[0];
-
-// obj
 
 setup = function() {
 
