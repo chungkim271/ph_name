@@ -8,21 +8,15 @@
   <body>
     <header>
       <div class="wrapper">
-        <h1>Follow the Money</h1>
-        <p><em>Individual Donations to 2016 Presidential Candidates by State</em></p>
+        <div id = "title">
+          <h1>Follow the Money</h1>
+        </div>
+        <div id ="sub-title">
+          <p>Individual Donations to 2016 Presidential Candidates by State</p>
+        </div>
       </div>
     </header>
     <main id="app">
-
-      <div class="dropdown">
-        <button onclick="myFunction()" class="dropbtn"> Dropdown </button>
-        <div id="myDropdown" class="dropdown-content">
-          <a href="#">Hillary Clinton</a>
-          <a href="#">Donald Trump</a>
-          <a href="#">Berny Sanders</a>
-          <a href="#">Ted Cruz</a>
-        </div>
-      </div>
 
     <script src="app/index.js"></script> 
 
@@ -68,26 +62,27 @@
         </div>
   </script>
 
+  <script id="template-newComment" type="text/x-handlebars-template">
+
+      <div class="js-newComment">
+        <h2>Share your thoughts on this viz!</h2>
+        <form class="js-newComment">
+          <p>
+            <label for="title">Name</label>
+            <input type="text" name="title">
+          </p>
+          <p>
+            <label for="comment">Comment</label>
+            <textarea name="comment" cols="100" rows="2"></textarea>
+          </p>
+          <button class="js-submit" type="submit">Post</button>
+        </form>
+      </div>
+  </script>
+
   <script id="template-comments" type="text/x-handlebars-template">
-    <div class="c-content">
-      <div class="c-comments">
-        <div class="c-comment-form">
-          <h3>New Comment:</h3>
-          <form class="c-form" action="/post/{{post.id}}" method="post">
-            <div class="c-form__item">
-              <h4 class="c-form__title">Author: </h4>
-              <input type="text" name="author" value="">
-            </div>
-            <div class="c-form__item">
-              <h4 class="c-form__title">Comment: </h4>
-              <textarea name="comment" rows="8" cols="40"></textarea>
-            </div>
-            <div class="c-form__item">
-              <button type="submit" name="submit">Submit</button>
-            </div>
-          </form>
-        </div>
-        <h3>Your Thoughts:</h3>
+     <div class="js-comments">   
+        <h3>Your Thoughts</h3>
         {{#each comments}}
           <div class="c-comment">
             <p>
@@ -98,7 +93,6 @@
             </span>
           </div>
         {{/each}}
-      </div>
     </div>
   </script>
 

@@ -1,7 +1,11 @@
 var app = document.getElementById('app') // this is all the space in <main>
 
-// relly helpful stackoverflow post about promises
-// http://stackoverflow.com/questions/30008114/how-do-i-promisify-native-xhr
+var mapData 
+var cfData
+var comments
+
+//relly helpful stackoverflow post about promises
+//http://stackoverflow.com/questions/30008114/how-do-i-promisify-native-xhr
 function makeRequest (method, url) {
   return new Promise(function (resolve, reject) {
     var xhr = new XMLHttpRequest();
@@ -26,6 +30,43 @@ function makeRequest (method, url) {
   });
 }
 
+// function makeRequest (opts) {
+//   return new Promise(function (resolve, reject) {
+//     var xhr = new XMLHttpRequest();
+//     xhr.open(opts.method, opts.url);
+//     xhr.onload = function () {
+//       if (this.status >= 200 && this.status < 300) {
+//         resolve(xhr.response);
+//       } else {
+//         reject({
+//           status: this.status,
+//           statusText: xhr.statusText
+//         });
+//       }
+//     };
+//     xhr.onerror = function () {
+//       reject({
+//         status: this.status,
+//         statusText: xhr.statusText
+//       });
+//     };
+//     if (opts.headers) {
+//       Object.keys(opts.headers).forEach(function (key) {
+//         xhr.setRequestHeader(key, opts.headers[key]);
+//       });
+//     }
+//     var params = opts.params;
+//     // We'll need to stringify if we've been given an object
+//     // If we have a string, this is skipped.
+//     if (params && typeof params === 'object') {
+//       params = Object.keys(params).map(function (key) {
+//         return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+//       }).join('&');
+//     }
+//     xhr.send(params);
+//   });
+// }
+
 
 
 /* 
@@ -44,12 +85,10 @@ var Views = {
             // listen for a click
             // then render template-mapViz and Views.mapViz.setup()!
 
-            var candidateNames = document.querySelectorAll('.js-candidate')
-            console.log(candidateNames )
+            var candidateNames = app.querySelectorAll('.js-candidate')
+            //console.log(candidateNames )
 
             for (i=0; i < candidateNames.length; i++) {
-                
-                console.log(name)
 
                 candidateNames[i].addEventListener('click', function( e ) {
                     e.preventDefault()
@@ -77,42 +116,55 @@ var Views = {
                     }
 
                     // obj passed into render() follows handlebar's format
-                    app.innerHTML = Views.mapViz.render( { "candidate":[obj] } ) //+ 
-                        //Views.comments.render(obj.candidate_id)
+                    app.innerHTML = Views.mapViz.render( { "candidate":[obj] } ) +
+                        Views.newComment.render() +
+                        Views.comments.render()
                     Views.mapViz.setup(obj)
-                    Views.comments.setup(obj)
-
 
                 })
             }
         }
-    
+    },
+
+    newComment: {
+
+        postComment: function(obj, url, newComment) {
+
+            console.log("long way to get here")
+
+            var request = new XMLHttpRequest()
+            request.open('POST', url)
+            request.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
+            request.onload = function (res) {
+                console.log("sucess posting to the server!")
+
+                comments = JSON.parse(res.target.response)
+
+                app.querySelector(".js-comments").remove()
+
+                // addInnerHTML will destroy event listners
+                // use insertAdjacentHTML
+                lastElementInApp = app.querySelector('.js-newComment')
+                lastElementInApp.insertAdjacentHTML('afterend', 
+                    Views.comments.render( {"comments":comments} ) 
+                )
+
+            }
+            // ??? don't really understand it but follow other examples
+            request.send(encodeURI("data=" + JSON.stringify(newComment) ))
+
+        }
     },
 
     comments: {
-        setup: function(obj) {
-            console.log(obj.candidate_id)
-            makeRequest('GET', 'http://localhost:2000/schedules/schedule_a/by_state/by_candidate')
-            .then( function(res) {
-
-                console.log('res type:' + typeof res)
-                console.log(res)
-
-                comments = JSON.parse( res )
-
-                app.innerHTML = app.innerHTML + Views.comments.render( {"comments":comments} )
-            
-            })
-        }
     },
 
     mapViz: { 
 
         setup: function(obj) {
-            console.log("set up for map view!")
-            console.log(obj)
 
-            Views.candidateList.setup()
+            console.log("step0")
+            url = 'http://localhost:2000/schedules/schedule_a/by_state/by_candidate/' + obj.candidate_id
 
             // the following function is more suited for 
             // when API calls must be chained-- i.e. a call is dependent upon
@@ -124,10 +176,18 @@ var Views = {
             // first promise will assign the json object 
             // the second promise will look for it in that functon's environment
             // not find it, and find it setup()'s environment
-            var mapData 
+            // var mapData 
+            // var cfData
+            // var comments
+            // step 1. get map data
+            console.log("step 1")
             makeRequest('GET', 'http://localhost:2000/us_map')
                 .then( function(res) {
                     mapData = JSON.parse( res )
+
+                    // step 2. get campaign finance data 
+                    console.log("step2")
+
 
                     // make the api call for the chosen candidate
                     candidateId = obj.candidate_id
@@ -140,21 +200,110 @@ var Views = {
 
                     return(makeRequest('GET', endPoint))
                 })
+                .then(function(res) {
+                    cfData = JSON.parse(res).results // this is an array
+
+                    // step 3. render comment section
+                    console.log("step3")
+                    url = 'http://localhost:2000/schedules/schedule_a/by_state/by_candidate/' + obj.candidate_id
+                    return( makeRequest('GET', url) )
+                })
                 .then( function(res) {
-                    var cfData = JSON.parse(res).results // this is an array
-                    Views.mapViz.generateMap(mapData, cfData, obj)
+                    console.log("step4")
+                    // got the comments
+                    comments = JSON.parse( res )
+
+                    console.log(comments)
+
+
+                    // step 5. render the page
+                    console.log("step 5")
+                    app.innerHTML = Views.mapViz.render( { "candidate":[obj] } ) +
+                         Views.newComment.render() +
+                         Views.comments.render( {"comments":comments} )
+
+                    // step 6. create event listners
+                    console.log("step 6")
+
+                    // create event listner for the submit button
+                    // listen to a clikc and send the post request to the server
+                    var postButton = document.querySelector(".js-submit")
+                    postButton.addEventListener('click', function(e) {
+
+                        e.preventDefault()
+
+                        var newForm = document.querySelector('.js-newComment')
+
+                        var newComment = {
+                            candidate_id: obj.candidate_id,
+                            author: newForm.querySelector('input').value,
+                            comment: newForm.querySelector('textarea').value
+                        }
+
+                        //console.log(newComment)
+
+                        // send it to the server!
+                        return(Views.newComment.postComment(obj, url, newComment))
+
+                    })
+
+                    // click event listeners for candidates' names
+                    var candidateNames = app.querySelectorAll('.js-candidate')
+                    for (i=0; i < candidateNames.length; i++) {
+
+                        candidateNames[i].addEventListener('click', function( e ) {
+                            e.preventDefault()
+
+                            // I can't use candidateNames[i].children...
+                            // when this function runs i is the last index
+                            // so it will only grab the last element of candidateNames.
+
+                            var name = e.target.innerText
+
+                            // find the candidate object using name 
+                            console.log('name is' + name)
+                            var obj = candidateData.candidate.filter(function ( obj ) {
+                                return obj.name === name
+                            })[0]
+
+                            // add to the candidate object a list of other candidates
+                            var others = candidateData.candidate.filter(function ( obj ) {
+                                return obj.name !== name
+                            })
+                            console.log(others)
+                            obj.otherCandidates = []
+                            for (i=0; i < others.length; i++) {
+                                obj.otherCandidates.push(others[i].name)
+                            }
+
+                            app.innerHTML = Views.mapViz.render( { "candidate":[obj] } ) +
+                                Views.newComment.render() +
+                                Views.comments.render()
+                            Views.mapViz.setup(obj)
+
+                        })
+                    }
+
+                    // step 7. render map
+                    console.log("step 7")
+                    console.log(mapData)
+                    return(Views.mapViz.generateMap(mapData, cfData, obj))
                 })
                 .catch(function(err) {
                     console.error('Augh, there was an error!', err.statusText)
-                })
-
-        },
+                }) 
+            }
+        ,
 
         generateMap: function(mapData, cfData, obj) {
-                  
-            // console.log(mapData)
-            // console.log(cfData)
-            // console.log("success!")
+
+console.log('here? 0')
+console.log('obj')
+console.log(obj)
+console.log("mapData")
+console.log(mapData)
+console.log("cfData")
+console.log(cfData)
 
             //Width and height of map
             var width = 960;
@@ -188,15 +337,14 @@ var Views = {
                     .attr("class", "tooltip")               
                     .style("opacity", 0);
 
-
             // create categorical variable based on donation amounts
             // and assign to a key in cfData
             // http://learnjsdata.com/ has super helpful tutorials
 
             // I need to delete territories other than the 50 states
             // Seems like if the state object doesn't have 'state_full', then it's not a U.S. state
-            console.log(cfData)
-            console.log(mapData)
+            //console.table(cfData)
+           // console.log(mapData)
 
             // define contain method that checks if the element is in an array
             Array.prototype.contains = function(element) {
@@ -236,6 +384,13 @@ var Views = {
                 .domain([min, max])
                 .range(colorScheme);
 
+console.log('here? 1')
+console.log('obj')
+console.log(obj)
+console.log("mapData")
+console.log(mapData)
+console.log("cfData")
+console.log(cfData)
             // add total to mapData
             for (var i = 0; i < cfData.length; i++) {
 
@@ -259,7 +414,9 @@ var Views = {
                     }
                 }
             }
-                
+            
+            console.log('here? 2')
+            
             // Bind the data to the SVG and create one path per GeoJSON feature
             svg.selectAll("path")
                 .data(mapData.features)
@@ -299,44 +456,6 @@ var Views = {
         }
     } 
 }
-
-
-
-
-
-/* 
-
-  Make API call to ProPublica
-
-*/
-
-
-
-// apiKey = '8mrww6WdlDoAwNbewqjRQBKIAfVxXsib2uK64OUf'
-// endPoint = 'https://api.open.fec.gov/v1/schedules/schedule_a/by_state/by_candidate/?per_page=100&page=1&api_key=' + 
-//   apiKey +
-//   '&candidate_id=P00003392&cycle=2016&election_full=true'
-
-// var request = new XMLHttpRequest()
-// request.open('GET', endPoint)
-// request.onreadystatechange = function() {
-//     if ( request.readyState === 4 && request.status === 200 ) {
-//       var response = JSON.parse( request.response )
-      
-//       var states = response.results
-
-//       var stateNames = []
-//       for (i=0; i < states.length; i ++) {
-//         stateNames.push(states[i].state)
-//       }
-//     }
-
-//     console.log(stateNames)
-
-// }
-// request.send()
-
-
 
 candidateData = {
     "candidate" : [
