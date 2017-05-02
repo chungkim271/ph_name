@@ -25,18 +25,20 @@ app.get('/us_map', function( req, res ) {
 app
 	.get('/schedules/schedule_a/by_state/by_candidate/:candidate_id', function( req, res ) {
 
-	// comments = [{
+	// testComment = [{
 
 	// 		"candidate_id": "P00003392",
 	// 		"author": "chung",
 	// 		"comment": "hmm" 
 	// 	}]
 
-		//console.log(req.params.candidate_id)
-		//console.log("does this work?")
-		//'candidate_id': req.params.candidate_id}
-		Comment.find({}, function( err, comments ) {
+		Comment.find({ 'candidate_id': req.params.candidate_id }, 'author comment', {sort: {"_id": -1}}, function( err, comments ) {
 
+		//console.log(req.params.candidate_id)
+		//console.log(typeof req.params.candidate_id)
+		//Comment.find({}, function( err, comments ) {
+
+			//console.log(comments)
 	    	res.status(200).json( comments )
 
 	  	})
@@ -60,7 +62,9 @@ app
 		      console.log( err )
 		    }
 
-		    Comment.find({}, function( err, comments ) {
+		    //req.params.candidate_id
+
+		    Comment.find({ 'candidate_id': req.params.candidate_id }, 'author comment', {sort: {"_id": -1}}, function( err, comments ) {
 
 		      res.status(200).json(comments)
 

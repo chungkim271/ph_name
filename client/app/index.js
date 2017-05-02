@@ -210,7 +210,7 @@ var Views = {
                 })
                 .then( function(res) {
                     console.log("step4")
-                    // got the comments
+                    // step.4 get the comments
                     comments = JSON.parse( res )
 
                     console.log(comments)
@@ -343,8 +343,6 @@ console.log(cfData)
 
             // I need to delete territories other than the 50 states
             // Seems like if the state object doesn't have 'state_full', then it's not a U.S. state
-            //console.table(cfData)
-           // console.log(mapData)
 
             // define contain method that checks if the element is in an array
             Array.prototype.contains = function(element) {
@@ -352,12 +350,15 @@ console.log(cfData)
             }
 
             nonUsStates = [null, "American Samoa", "Guam", "Northern Mariana Islands", "Puerto Rico", "Virgin Islands"]
+            nonUsStatesAbr = ['AE', null]
 
             for (i=0; i < cfData.length; i++) {
                 //console.log(cfData[i])
-                if (nonUsStates.contains(cfData[i].state_full)) {
+                if ( nonUsStates.contains(cfData[i].state_full) ||
+                    nonUsStatesAbr.contains(cfData[i].state) ) {
                     cfData.splice(i, 1)
                 }
+
             }
 
             // the following objects have stete_full = null, but won't get filtered!
@@ -384,13 +385,6 @@ console.log(cfData)
                 .domain([min, max])
                 .range(colorScheme);
 
-console.log('here? 1')
-console.log('obj')
-console.log(obj)
-console.log("mapData")
-console.log(mapData)
-console.log("cfData")
-console.log(cfData)
             // add total to mapData
             for (var i = 0; i < cfData.length; i++) {
 
@@ -414,8 +408,6 @@ console.log(cfData)
                     }
                 }
             }
-            
-            console.log('here? 2')
             
             // Bind the data to the SVG and create one path per GeoJSON feature
             svg.selectAll("path")
@@ -442,7 +434,7 @@ console.log(cfData)
                     div.transition()        
                         .duration(200)      
                         .style("opacity", .9);      
-                    div.text('$ ' + d.properties.total)
+                    div.text(d.properties.name + ': $' + (d.properties.total/1000000).toFixed(2) + 'M')
                         .style("left", (d3.event.pageX) + "px")     
                         .style("top", (d3.event.pageY - 28) + "px");    
                 })   

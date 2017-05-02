@@ -2,14 +2,14 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>To do List</title>
+    <title>Campaign Finance Viz</title>
     <link rel="stylesheet" href="main.css">
   </head>
   <body>
     <header>
       <div class="wrapper">
         <div id = "title">
-          <h1>Follow the Money</h1>
+          <h1>Show Me the Campaign Money</h1>
         </div>
         <div id ="sub-title">
           <p>Individual Donations to 2016 Presidential Candidates by State</p>
@@ -29,9 +29,10 @@
     </footer>
 
   <script id="template-candidateList" type="text/x-handlebars-template">
-        <div >
-          <h2>Candidates</h2>
-          <ul class="js-list">
+        <div style="height: 200px;">
+        </div>
+        <div>
+          <ul class="js-list" style="display:inline-block; ">
             {{#each candidate}}
             <div class="js-candidate">
                 <p> {{this.name}} </p>
