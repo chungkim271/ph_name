@@ -1,3 +1,5 @@
+console.log("is the client running?")
+
 var app = document.getElementById('app') // this is all the space in <main>
 
 var mapData 
@@ -164,7 +166,7 @@ var Views = {
         setup: function(obj) {
 
             console.log("step0")
-            url = 'http://localhost:2000/schedules/schedule_a/by_state/by_candidate/' + obj.candidate_id
+            url = '/schedules/schedule_a/by_state/by_candidate/' + obj.candidate_id
 
             // the following function is more suited for 
             // when API calls must be chained-- i.e. a call is dependent upon
@@ -181,7 +183,7 @@ var Views = {
             // var comments
             // step 1. get map data
             console.log("step 1")
-            makeRequest('GET', 'http://localhost:2000/us_map')
+            makeRequest('GET', '/us_map')
                 .then( function(res) {
                     mapData = JSON.parse( res )
 
@@ -205,7 +207,7 @@ var Views = {
 
                     // step 3. render comment section
                     console.log("step3")
-                    url = 'http://localhost:2000/schedules/schedule_a/by_state/by_candidate/' + obj.candidate_id
+                    url = '/schedules/schedule_a/by_state/by_candidate/' + obj.candidate_id
                     return( makeRequest('GET', url) )
                 })
                 .then( function(res) {
@@ -470,6 +472,12 @@ candidateData = {
             "name" : "Ted Cruz",
             "candidate_id" : "P60006111",
             "party" : "R"
+        },
+        {
+            "name" : "The Muslim Dictator Trump",
+            "candidate_id" : "P60018835",
+            "party" : "R"
+
         }
 
     ]

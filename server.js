@@ -1,20 +1,26 @@
+console.log("is the server running?")
 var express = require('express')
 var bodyParser = require('body-parser')
 var d3 = require('d3')
 var cors = require('cors')
-var Comment = require('./models/comment.js')
+var Comment = require('./server/models/comment.js')
 
-var data = require('./public/us-states.json')
+var data = require('./server/public/us-states.json')
 var mongoose = require('mongoose')
+var port = process.env.PORT || 8081
 
-mongoose.connect('mongodb://localhost:27017/cf-data-viz-app-comments')
+mongoose.connect('mongodb://chung:cfapp@ds129031.mlab.com:29031/cf-data-viz-app-comments')
 
 var app = express()
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }) )
 app.use(cors())
-app.use(express.static('public'));
+app.use(express.static('./server/public'));
+
+app.get('/', function( req, res ) {
+	res.send('hello world!');
+})
 
 app.get('/us_map', function( req, res ) {
 
@@ -74,6 +80,6 @@ app
 
 	})
 
-app.listen(2000, function() {
-  console.log('listening on port 2000')
+app.listen(port, function() {
+  console.log('listening on port aws port: ' + port)
 })
